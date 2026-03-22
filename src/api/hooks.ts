@@ -2,8 +2,8 @@
  * React Query hooks for all API endpoints.
  */
 
-import { useQuery } from "@tanstack/react-query";
-import { get } from "./client";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { get, post } from "./client";
 import type {
   CreditLimit,
   CreditUtilization,
@@ -11,6 +11,7 @@ import type {
   TradingRelationship,
   Portfolio,
   Book,
+  NLPParseResponse,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -67,5 +68,16 @@ export function useBooks() {
   return useQuery({
     queryKey: ["books"],
     queryFn: () => get<Book[]>("/api/v1/books"),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+export function useParseNLP() {
+  return useMutation({
+    mutationFn: (params: { text: string; context?: string }) =>
+      post<NLPParseResponse>("/api/v1/orders/parse-nlp", params),
   });
 }
