@@ -1,42 +1,41 @@
 import { useState } from "react";
 import type { Order } from "@/api/types";
 import type { OrderFormData } from "@/components/orders/OrderFields";
+import { useOrders, useCreateOrder, useCancelOrder, useUpdateOrderStatus } from "@/api/hooks";
 import OrderTicket from "@/components/orders/OrderTicket";
 import OrderBlotter from "@/components/orders/OrderBlotter";
 import OrderDetailPanel from "@/components/orders/OrderDetailPanel";
 import Card from "@/components/shared/Card";
 
-let orderSeq = 0;
-
-function formToOrder(data: OrderFormData): Order {
-  orderSeq += 1;
-  const now = new Date().toISOString();
-  return {
-    order_id: `ORD-${String(orderSeq).padStart(4, "0")}`,
-    instrument: data.instrument,
-    side: data.side,
-    quantity: data.quantity,
-    unit: data.unit,
-    price: data.price || "market",
-    counterparty: data.counterparty,
-    delivery_period: data.delivery_period,
-    order_type: data.order_type,
-    portfolio: data.portfolio,
-    book: data.book,
-    status: "Pending",
-    filled_quantity: "",
-    created_at: now,
-    updated_at: now,
-  };
-}
-
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { data: orders = [], isLoading } = useOrders();
+  const createOrder = useCreateOrder();
+  const cancelOrder = useCancelOrder();
+  const updateStatus = useUpdateOrderStatus();
   const [selected, setSelected] = useState<Order | null>(null);
 
   function handleSubmit(data: OrderFormData) {
-    const order = formToOrder(data);
-    setOrders((prev) => [order, ...prev]);
+    createOrder.mutate({
+      instrument: data.instrument,
+      side: data.side,
+      quantity: data.quantity,
+      unit: data.unit,
+      price: data.price,
+      counterparty: data.counterparty,
+      delivery_period: data.delivery_period,
+      order_type: data.order_type,
+      portfolio: data.portfolio,
+      book: data.book,
+    });
+  }
+
+  function handleCancel(orderId: string) {
+    cancelOrder.mutate(orderId);
+    if (selected?.order_id === orderId) setSelected(null);
+  }
+
+  function handleAmend(orderId: string, status: string) {
+    updateStatus.mutate({ orderId, status });
   }
 
   return (
@@ -45,14 +44,30 @@ export default function OrdersPage() {
 
       <OrderTicket onSubmit={handleSubmit} />
 
+      {createOrder.isError && (
+        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          {createOrder.error.message}
+        </div>
+      )}
+
       <Card title={`Order Blotter (${orders.length})`}>
-        <OrderBlotter orders={orders} onSelect={setSelected} />
+        {isLoading ? (
+          <p className="text-sm text-slate-500 py-4">Loading orders...</p>
+        ) : (
+          <OrderBlotter
+            orders={orders}
+            onSelect={setSelected}
+            onCancel={handleCancel}
+          />
+        )}
       </Card>
 
       {selected && (
         <OrderDetailPanel
           order={selected}
           onClose={() => setSelected(null)}
+          onCancel={handleCancel}
+          onAmend={handleAmend}
         />
       )}
     </div>

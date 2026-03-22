@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface OrderBlotterProps {
   orders: Order[];
   onSelect?: (order: Order) => void;
+  onCancel?: (orderId: string) => void;
 }
 
 const statusColors: Record<OrderStatus, string> = {
@@ -20,7 +21,9 @@ const sideColors: Record<string, string> = {
   Sell: "text-red-700 font-semibold",
 };
 
-export default function OrderBlotter({ orders, onSelect }: OrderBlotterProps) {
+const cancellable = new Set<OrderStatus>(["Pending", "Working"]);
+
+export default function OrderBlotter({ orders, onSelect, onCancel }: OrderBlotterProps) {
   if (orders.length === 0) {
     return (
       <p className="text-sm text-slate-500 py-4">
@@ -44,6 +47,7 @@ export default function OrderBlotter({ orders, onSelect }: OrderBlotterProps) {
             <th className="px-3 py-3">Delivery</th>
             <th className="px-3 py-3 text-right">Filled</th>
             <th className="px-3 py-3">Status</th>
+            {onCancel && <th className="px-3 py-3"></th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -75,7 +79,7 @@ export default function OrderBlotter({ orders, onSelect }: OrderBlotterProps) {
               <td className="px-3 py-2.5">{order.counterparty}</td>
               <td className="px-3 py-2.5">{order.delivery_period}</td>
               <td className="px-3 py-2.5 text-right font-mono">
-                {order.filled_quantity || "—"}
+                {order.filled_quantity || "\u2014"}
               </td>
               <td className="px-3 py-2.5">
                 <span
@@ -87,6 +91,21 @@ export default function OrderBlotter({ orders, onSelect }: OrderBlotterProps) {
                   {order.status}
                 </span>
               </td>
+              {onCancel && (
+                <td className="px-3 py-2.5">
+                  {cancellable.has(order.status) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCancel(order.order_id);
+                      }}
+                      className="text-xs text-red-600 hover:text-red-800 font-medium"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

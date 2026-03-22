@@ -2,8 +2,8 @@
  * React Query hooks for all API endpoints.
  */
 
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { get, post } from "./client";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { get, post, patch } from "./client";
 import type {
   CreditLimit,
   CreditUtilization,
@@ -11,6 +11,7 @@ import type {
   TradingRelationship,
   Portfolio,
   Book,
+  Order,
   NLPParseResponse,
   UserEntitlements,
   PermissionCheck,
@@ -111,6 +112,44 @@ export function useBook(symbol: string) {
 // ---------------------------------------------------------------------------
 // Orders
 // ---------------------------------------------------------------------------
+
+export function useOrders() {
+  return useQuery({
+    queryKey: ["orders"],
+    queryFn: () => get<Order[]>("/api/v1/orders"),
+    refetchInterval: 5_000,
+  });
+}
+
+export function useCreateOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Record<string, string>) =>
+      post<Order>("/api/v1/orders", data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+  });
+}
+
+export function useUpdateOrderStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, status, filledQuantity }: { orderId: string; status: string; filledQuantity?: string }) =>
+      patch<Order>(`/api/v1/orders/${encodeURIComponent(orderId)}`, {
+        status,
+        filled_quantity: filledQuantity ?? "",
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+  });
+}
+
+export function useCancelOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderId: string) =>
+      post<Order>(`/api/v1/orders/${encodeURIComponent(orderId)}/cancel`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["orders"] }),
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Entitlements
