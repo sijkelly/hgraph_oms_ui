@@ -5,8 +5,10 @@ import {
   Users,
   Briefcase,
   ClipboardList,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/auth/AuthContext";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -17,6 +19,8 @@ const links = [
 ];
 
 export default function Sidebar() {
+  const { userId, entitlements, setUserId } = useAuth();
+
   return (
     <aside className="w-56 shrink-0 bg-[var(--color-sidebar-bg)] text-[var(--color-sidebar-text)] flex flex-col">
       <div className="px-5 py-4 text-lg font-semibold tracking-tight border-b border-white/10">
@@ -44,8 +48,26 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-5 py-3 text-xs text-slate-500 border-t border-white/10">
-        v0.1.0
+      {/* User info */}
+      <div className="border-t border-white/10 px-5 py-3">
+        {userId ? (
+          <div className="space-y-1">
+            <div className="text-xs text-slate-400">Signed in as</div>
+            <div className="text-sm font-medium truncate">{userId}</div>
+            {entitlements && (
+              <div className="text-xs text-slate-500">{entitlements.role}</div>
+            )}
+            <button
+              onClick={() => setUserId("")}
+              className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 mt-1"
+            >
+              <LogOut size={12} />
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <div className="text-xs text-slate-500">Not signed in</div>
+        )}
       </div>
     </aside>
   );

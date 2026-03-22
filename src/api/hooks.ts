@@ -12,6 +12,8 @@ import type {
   Portfolio,
   Book,
   NLPParseResponse,
+  UserEntitlements,
+  PermissionCheck,
 } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -46,10 +48,29 @@ export function useEntities() {
   });
 }
 
+export function useEntity(symbol: string) {
+  return useQuery({
+    queryKey: ["entity", symbol],
+    queryFn: () => get<LegalEntity>(`/api/v1/parties/entities/${encodeURIComponent(symbol)}`),
+    enabled: !!symbol,
+  });
+}
+
 export function useRelationships() {
   return useQuery({
     queryKey: ["relationships"],
     queryFn: () => get<TradingRelationship[]>("/api/v1/parties/relationships"),
+  });
+}
+
+export function useRelationship(internal: string, external: string) {
+  return useQuery({
+    queryKey: ["relationship", internal, external],
+    queryFn: () =>
+      get<TradingRelationship>(
+        `/api/v1/parties/relationships/${encodeURIComponent(internal)}/${encodeURIComponent(external)}`,
+      ),
+    enabled: !!internal && !!external,
   });
 }
 
@@ -64,10 +85,54 @@ export function usePortfolios() {
   });
 }
 
+export function usePortfolio(symbol: string) {
+  return useQuery({
+    queryKey: ["portfolio", symbol],
+    queryFn: () => get<Portfolio>(`/api/v1/portfolios/${encodeURIComponent(symbol)}`),
+    enabled: !!symbol,
+  });
+}
+
 export function useBooks() {
   return useQuery({
     queryKey: ["books"],
     queryFn: () => get<Book[]>("/api/v1/books"),
+  });
+}
+
+export function useBook(symbol: string) {
+  return useQuery({
+    queryKey: ["book", symbol],
+    queryFn: () => get<Book>(`/api/v1/books/${encodeURIComponent(symbol)}`),
+    enabled: !!symbol,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Entitlements
+// ---------------------------------------------------------------------------
+
+export function useUserEntitlements(userId: string) {
+  return useQuery({
+    queryKey: ["entitlements", userId],
+    queryFn: () => get<UserEntitlements>(`/api/v1/entitlements/${encodeURIComponent(userId)}`),
+    enabled: !!userId,
+    retry: false,
+  });
+}
+
+export function usePermissionCheck(userId: string, action: string) {
+  return useQuery({
+    queryKey: ["permission", userId, action],
+    queryFn: () =>
+      get<PermissionCheck>(
+        `/api/v1/entitlements/${encodeURIComponent(userId)}/check/${encodeURIComponent(action)}`,
+      ),
+    enabled: !!userId && !!action,
   });
 }
 

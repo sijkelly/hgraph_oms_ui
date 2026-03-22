@@ -1,19 +1,69 @@
-import { useEntities, useRelationships } from "@/api/hooks";
+import { useState, useMemo } from "react";
+import { useEntities, useRelationships, useCreditLimits, useCreditUtilizations } from "@/api/hooks";
+import type { LegalEntity } from "@/api/types";
 import Card from "@/components/shared/Card";
+import EntityDetail from "@/components/parties/EntityDetail";
+import { Search } from "lucide-react";
 
 export default function PartiesPage() {
   const { data: entities, isLoading: entLoading } = useEntities();
-  const { data: relationships, isLoading: relLoading } = useRelationships();
+  const { data: relationships } = useRelationships();
+  const { data: limits } = useCreditLimits();
+  const { data: utilizations } = useCreditUtilizations();
+
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<LegalEntity | null>(null);
+
+  const filtered = useMemo(() => {
+    if (!entities) return [];
+    if (!search) return entities;
+    const q = search.toLowerCase();
+    return entities.filter(
+      (e) =>
+        e.symbol.toLowerCase().includes(q) ||
+        e.name.toLowerCase().includes(q) ||
+        (e.lei && e.lei.toLowerCase().includes(q)),
+    );
+  }, [entities, search]);
+
+  if (selected) {
+    const util = (utilizations ?? []).find(
+      (u) => u.counterparty_symbol === selected.symbol,
+    );
+    return (
+      <EntityDetail
+        entity={selected}
+        relationships={relationships ?? []}
+        limits={limits ?? []}
+        utilization={util}
+        onClose={() => setSelected(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">Counterparties</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-slate-900">Counterparties</h1>
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search entities..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="rounded-md border border-slate-300 pl-9 pr-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
 
-      <Card title="Legal Entities">
+      <Card title={`Legal Entities (${filtered.length})`}>
         {entLoading ? (
           <p className="text-sm text-slate-500">Loading...</p>
-        ) : !entities?.length ? (
-          <p className="text-sm text-slate-500">No entities found.</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            {search ? "No entities match your search." : "No entities found."}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -27,55 +77,17 @@ export default function PartiesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {entities.map((e) => (
-                  <tr key={e.symbol} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium text-slate-900">{e.symbol}</td>
+                {filtered.map((e) => (
+                  <tr
+                    key={e.symbol}
+                    onClick={() => setSelected(e)}
+                    className="hover:bg-slate-50 cursor-pointer"
+                  >
+                    <td className="px-4 py-3 font-medium text-blue-600">{e.symbol}</td>
                     <td className="px-4 py-3">{e.name}</td>
                     <td className="px-4 py-3">{e.classification}</td>
                     <td className="px-4 py-3 font-mono text-xs">{e.lei ?? "—"}</td>
                     <td className="px-4 py-3">{e.jurisdiction ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-
-      <Card title="Trading Relationships">
-        {relLoading ? (
-          <p className="text-sm text-slate-500">Loading...</p>
-        ) : !relationships?.length ? (
-          <p className="text-sm text-slate-500">No relationships found.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  <th className="px-4 py-3">Internal</th>
-                  <th className="px-4 py-3">External</th>
-                  <th className="px-4 py-3">Clearing</th>
-                  <th className="px-4 py-3">ISDA</th>
-                  <th className="px-4 py-3">Portfolio</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {relationships.map((r) => (
-                  <tr
-                    key={`${r.internal_party_symbol}-${r.external_party_symbol}`}
-                    className="hover:bg-slate-50"
-                  >
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {r.internal_party_symbol}
-                    </td>
-                    <td className="px-4 py-3">{r.external_party_symbol}</td>
-                    <td className="px-4 py-3">{r.clearing_status}</td>
-                    <td className="px-4 py-3">
-                      {r.isda
-                        ? `${r.isda.agreement_type} ${r.isda.version ?? ""}`
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3">{r.internal_portfolio ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

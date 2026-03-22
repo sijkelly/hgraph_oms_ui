@@ -113,3 +113,15 @@ export interface NLPParseResponse {
   notes?: string;
   raw_text: string;
 }
+
+export interface UserEntitlements {
+  user_id: string;
+  role: string;
+  allowed_actions: string[];
+}
+
+export interface PermissionCheck {
+  user_id: string;
+  action: string;
+  allowed: boolean;
+}
