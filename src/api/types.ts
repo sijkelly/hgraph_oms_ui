@@ -68,6 +68,32 @@ export interface Book {
   status: string;
 }
 
+export type OrderStatus =
+  | "Pending"
+  | "Working"
+  | "Filled"
+  | "Partially Filled"
+  | "Rejected"
+  | "Cancelled";
+
+export interface Order {
+  order_id: string;
+  instrument: string;
+  side: string;
+  quantity: string;
+  unit: string;
+  price: string;
+  counterparty: string;
+  delivery_period: string;
+  order_type: string;
+  portfolio: string;
+  book: string;
+  status: OrderStatus;
+  filled_quantity: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface OrderField {
   value: string;
   confidence: number;

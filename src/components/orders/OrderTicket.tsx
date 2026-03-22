@@ -16,7 +16,11 @@ const MODES: { key: EntryMode; label: string; icon: typeof ClipboardList }[] = [
   { key: "nlp", label: "Natural Language", icon: Sparkles },
 ];
 
-export default function OrderTicket() {
+interface OrderTicketProps {
+  onSubmit?: (data: OrderFormData) => void;
+}
+
+export default function OrderTicket({ onSubmit }: OrderTicketProps) {
   const [mode, setMode] = useState<EntryMode>("structured");
   const [formData, setFormData] = useState<OrderFormData>(EMPTY_ORDER);
   const [confidences, setConfidences] = useState<Record<string, number>>({});
@@ -25,13 +29,14 @@ export default function OrderTicket() {
   function handleParsed(data: Partial<OrderFormData>, conf: Record<string, number>) {
     setFormData((prev) => ({ ...prev, ...data }));
     setConfidences(conf);
-    // Switch to structured view so user can review parsed fields
     setMode("structured");
   }
 
   function handleSubmit() {
-    // TODO: POST to /api/v1/orders when endpoint is ready
+    onSubmit?.(formData);
     setSubmitted(true);
+    setFormData(EMPTY_ORDER);
+    setConfidences({});
     setTimeout(() => setSubmitted(false), 3000);
   }
 
