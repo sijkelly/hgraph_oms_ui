@@ -97,9 +97,12 @@ hgraph_oms_ui/
     │   ├── websocket.ts               # WebSocketManager with auto-reconnect
     │   └── useWebSocket.ts            # useCreditWebSocket React hook
     ├── auth/                           # Authentication
-    │   ├── AuthContext.tsx             # AuthProvider with localStorage persistence
-    │   ├── LoginPrompt.tsx            # Sign-in form
-    │   └── RequireAuth.tsx            # Route guard with permission check
+    │   ├── AuthContext.tsx             # AuthProvider: session, sign-in/out, dev or sso mode
+    │   ├── AuthGate.tsx               # App-level gate: login screen until signed in
+    │   ├── LoginPrompt.tsx            # Demo accounts (dev) or "Sign in with SSO" (sso)
+    │   ├── oidc.ts                    # OpenID Connect sign-in (authorization code + PKCE)
+    │   ├── SSOCallback.tsx            # /auth/callback: exchanges the code, asks the API who the user is
+    │   └── RequireAuth.tsx            # Action-level permission gate
     ├── components/
     │   ├── layout/
     │   │   ├── AppShell.tsx           # Flex layout with Sidebar + Outlet + shortcuts
@@ -156,6 +159,20 @@ In development, Vite proxies API and WebSocket requests to the FastAPI backend:
 - `/ws/*` → `ws://localhost:8000`
 
 This is configured in `vite.config.ts`. In production, set `VITE_API_BASE_URL` to the backend origin.
+
+## Authentication
+
+Set with `VITE_AUTH_MODE` (see `.env.example`); it must match the backend's `AUTH_MODE`.
+
+- **`dev`** (default; backend `AUTH_MODE=header`) — pick a demo account. The user ID is sent as `X-User-Id`
+  and remembered in `localStorage`.
+- **`sso`** (backend `AUTH_MODE=oidc`) — OpenID Connect authorization-code flow with PKCE. Set
+  `VITE_OIDC_ISSUER` (same value as the backend's `OIDC_ISSUER`) and `VITE_OIDC_CLIENT_ID`, and register the
+  app at the provider as a public (SPA) client with redirect URI `<origin>/auth/callback`. The access token
+  is sent as a bearer token on API calls and as the subprotocol pair `["bearer", token]` on WebSockets, and
+  is kept in `sessionStorage` only. The user ID comes from the backend (`GET /api/v1/me`), never from the URL.
+  The user is signed out when the token expires or the API answers 401; there is no silent refresh.
+  Signing out clears this app's session; it does not sign the user out of the identity provider.
 
 ## Keyboard Shortcuts (Electron)
 

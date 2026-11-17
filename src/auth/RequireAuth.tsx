@@ -1,26 +1,21 @@
 import type { ReactNode } from "react";
 import { useAuth } from "./AuthContext";
-import LoginPrompt from "./LoginPrompt";
 
 interface RequireAuthProps {
   children: ReactNode;
+  /** Required entitlements action (e.g. "execute_trade"). If omitted, just checks auth. */
   action?: string;
 }
 
+/**
+ * Action-level permission gate.
+ *
+ * Use inside pages to conditionally render content based on the user's
+ * entitlements. App-level auth is handled by AuthGate — this component
+ * assumes the user is already authenticated.
+ */
 export default function RequireAuth({ children, action }: RequireAuthProps) {
-  const { userId, isAuthenticated, isLoading, entitlements } = useAuth();
-
-  if (!userId) {
-    return <LoginPrompt />;
-  }
-
-  if (isLoading) {
-    return <p className="text-sm text-slate-500 p-6">Checking permissions...</p>;
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPrompt message="User not found. Please enter a valid user ID." />;
-  }
+  const { entitlements } = useAuth();
 
   if (action && entitlements) {
     if (!entitlements.allowed_actions.includes(action)) {

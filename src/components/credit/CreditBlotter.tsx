@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import type { Client, Table } from "@finos/perspective";
+import type { HTMLPerspectiveViewerElement } from "@finos/perspective-viewer";
 import type { CreditLimit } from "@/api/types";
 
 interface CreditBlotterProps {
@@ -8,7 +10,7 @@ interface CreditBlotterProps {
 export default function CreditBlotter({ limits }: CreditBlotterProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<HTMLElement | null>(null);
-  const tableRef = useRef<any>(null);
+  const tableRef = useRef<Table | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -21,26 +23,25 @@ export default function CreditBlotter({ limits }: CreditBlotterProps) {
       // Create worker and table
       const worker = await perspective.default.websocket("");
       // Fallback: use the default worker if websocket fails
-      let worker2: any;
+      let worker2: Client;
       try {
         worker2 = await perspective.default.worker();
       } catch {
         worker2 = worker;
       }
 
-      const table = await worker2.table(
-        {
-          counterparty_symbol: "string",
-          limit_type: "string",
-          limit_amount: "float",
-          limit_currency: "string",
-          effective_date: "string",
-          expiry_date: "string",
-          status: "string",
-          approved_by: "string",
-        },
-        { name: "credit_limits" },
-      );
+      // A column-type schema; Perspective's typings only describe row or column data here
+      const schema = {
+        counterparty_symbol: "string",
+        limit_type: "string",
+        limit_amount: "float",
+        limit_currency: "string",
+        effective_date: "string",
+        expiry_date: "string",
+        status: "string",
+        approved_by: "string",
+      } as unknown as Record<string, unknown[]>;
+      const table = await worker2.table(schema, { name: "credit_limits" });
 
       if (cancelled) {
         table.delete();
@@ -56,11 +57,11 @@ export default function CreditBlotter({ limits }: CreditBlotterProps) {
 
       if (cancelled) return;
 
-      const viewer = document.createElement("perspective-viewer");
+      const viewer = document.createElement("perspective-viewer") as HTMLPerspectiveViewerElement;
       container.appendChild(viewer);
       viewerRef.current = viewer;
 
-      await (viewer as any).load(table);
+      await viewer.load(table);
 
       // Load initial data
       if (limits.length > 0) {

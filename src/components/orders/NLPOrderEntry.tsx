@@ -40,7 +40,7 @@ export default function NLPOrderEntry({ onParsed }: NLPOrderEntryProps) {
   const [text, setText] = useState("");
   const [preview, setPreview] = useState<Partial<OrderFormData> | null>(null);
   const parseNLP = useParseNLP();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const doParse = useCallback(
     (value: string) => {
