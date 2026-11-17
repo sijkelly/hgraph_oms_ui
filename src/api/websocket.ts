@@ -2,6 +2,8 @@
  * WebSocket connection manager with auto-reconnect.
  */
 
+import { getAuthToken } from "./client";
+
 export type MessageHandler = (data: unknown) => void;
 
 export class WebSocketManager {
@@ -10,7 +12,11 @@ export class WebSocketManager {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelay = 2000;
 
-  constructor(private url: string) {}
+  private url: string;
+
+  constructor(url: string) {
+    this.url = url;
+  }
 
   connect(): void {
     if (this.ws?.readyState === WebSocket.OPEN) return;
@@ -19,7 +25,9 @@ export class WebSocketManager {
       ? `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${this.url}`
       : this.url;
 
-    this.ws = new WebSocket(wsUrl);
+    // Browsers cannot set headers on a WebSocket, so the API takes the token as a subprotocol pair
+    const token = getAuthToken();
+    this.ws = token ? new WebSocket(wsUrl, ["bearer", token]) : new WebSocket(wsUrl);
 
     this.ws.onmessage = (event) => {
       try {

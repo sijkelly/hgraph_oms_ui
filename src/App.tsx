@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/auth/AuthContext";
-import RequireAuth from "@/auth/RequireAuth";
+import AuthGate from "@/auth/AuthGate";
+import SSOCallback from "@/auth/SSOCallback";
 import AppShell from "@/components/layout/AppShell";
 import Dashboard from "@/pages/Dashboard";
 import CreditPage from "@/pages/CreditPage";
@@ -24,17 +25,20 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route element={<AppShell />}>
+            {/* SSO callback — must be outside the auth gate */}
+            <Route path="/auth/callback" element={<SSOCallback />} />
+
+            {/* All other routes require authentication */}
+            <Route
+              element={
+                <AuthGate>
+                  <AppShell />
+                </AuthGate>
+              }
+            >
               <Route index element={<Dashboard />} />
               <Route path="credit" element={<CreditPage />} />
-              <Route
-                path="orders"
-                element={
-                  <RequireAuth action="execute_trade">
-                    <OrdersPage />
-                  </RequireAuth>
-                }
-              />
+              <Route path="orders" element={<OrdersPage />} />
               <Route path="parties" element={<PartiesPage />} />
               <Route path="portfolios" element={<PortfoliosPage />} />
             </Route>
